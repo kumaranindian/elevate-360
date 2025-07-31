@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1063730194040",
+    "project_id": "elevate-360-5f40b",
+    "storage_bucket": "elevate-360-5f40b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1063730194040:android:7ed3bf2d007d78dd632f8d",
+        "android_client_info": {
+          "package_name": "com.example.grow360"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnScepQe2BRrL4c67FmWu6rEE5HoK6Tos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1063730194040:android:c58b01f2492698a1632f8d",
+        "android_client_info": {
+          "package_name": "com.i2i.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnScepQe2BRrL4c67FmWu6rEE5HoK6Tos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

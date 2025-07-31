@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmployee() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'employee';
+    }
+
+    function isManager() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
+    }
+
+    function isHR() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'hr_admin';
+    }
+
+    function isOwnReview(reviewData) {
+      return reviewData.employee_id == request.auth.uid;
+    }
+
+    function isReporteeReview(reviewData) {
+      return exists(/databases/$(database)/documents/employees/$(reviewData.employee_id)) &&
+             get(/databases/$(database)/documents/employees/$(reviewData.employee_id)).data.manager_id == request.auth.uid;
+    }
+
+    function canSubmitSelfReview(reviewData) {
+      return reviewData.status == 'awaiting self review' || reviewData.status == 'self review completed';
+    }
+
+    function canSubmitManagerReview(reviewData) {
+      return reviewData.status == 'self review completed';
+    }
+
+    function canSubmitHRReview(reviewData) {
+      return reviewData.status == 'manager review completed';
+    }
+
+    // Performance Reviews collection rules
+    match /performanceReviews/{reviewId} {
+      // Allow read if:
+      // - User is the employee and it's their own review
+      // - User is the manager and it's their reportee's review
+      // - User is HR
+      allow read: if isSignedIn() && (
+        isOwnReview(resource.data) ||
+        (isManager() && isReporteeReview(resource.data)) ||
+        isHR()
+      );
+
+      // Allow create if:
+      // - User is a manager creating a review for their reportee
+      // - User is HR
+      allow create: if isSignedIn() && (
+        (isManager() && isReporteeReview(request.resource.data)) ||
+        isHR()
+      );
+
+      // Allow update if:
+      // - Employee updating their own self review data at correct stage
+      // - Manager updating their reportee's manager review data at correct stage
+      // - HR updating review at correct stage
+      allow update: if isSignedIn() && (
+        (isEmployee() && isOwnReview(resource.data) && canSubmitSelfReview(resource.data) && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['self_review_data', 'status', 'self_review_submitted_at', 'updated_at'])) ||
+        (isManager() && isReporteeReview(resource.data) && canSubmitManagerReview(resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['manager_review_data', 'status', 'manager_review_submitted_at', 'updated_at'])) ||
+        (isHR() && canSubmitHRReview(resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hr_review_data', 'status', 'hr_review_submitted_at', 'updated_at']))
+      );
+
+      // Allow delete if:
+      // - User is HR
+      allow delete: if isSignedIn() && isHR();
+    }
+  }
+}
