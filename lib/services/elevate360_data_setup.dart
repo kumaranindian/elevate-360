@@ -1269,9 +1269,10 @@ class Elevate360DataSetup {
       // Create Q1 2025 reviews
       for (int j = 0; j < q1ReviewsData.length; j++) {
         final reviewData = q1ReviewsData[j];
+        final reviewType = j + 1; // 1=self, 2=manager, 3=HR
         
         final review = {
-          'id': 'q1_review_${employeeId}_$j',
+          'id': '2025_q1_${employeeId}_$reviewType',
           'employee_id': employeeId,
           'reviewer_id': j == 0 ? employeeId : managerId, // Self review or manager review
           'review_type': reviewData['review_type'] as String,
@@ -1292,9 +1293,10 @@ class Elevate360DataSetup {
       // Create Q2 2025 reviews
       for (int j = 0; j < q2ReviewsData.length; j++) {
         final reviewData = q2ReviewsData[j];
+        final reviewType = j + 1; // 1=self, 2=manager, 3=HR
         
         final review = {
-          'id': 'q2_review_${employeeId}_$j',
+          'id': '2025_q2_${employeeId}_$reviewType',
           'employee_id': employeeId,
           'reviewer_id': j == 0 ? employeeId : managerId, // Self review or manager review
           'review_type': reviewData['review_type'] as String,

@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../core/utils/app_theme.dart';
 import '../core/widgets/app_logo.dart';
 import '../models/user_model.dart';
+import 'login_screen.dart';
 import 'manager_self_assessment_screen.dart';
 import '../models/employee_model.dart';
 import '../models/goal_model.dart';
 import '../models/self_assessment_model.dart';
-import '../models/review_model.dart';
+
 import '../models/skill_model.dart';
-import '../core/services/auth_service.dart';
+
 import '../services/employee_service.dart';
 import '../services/goal_service.dart';
 import '../services/self_assessment_service.dart';
-import '../services/review_service.dart';
+
 import '../services/skill_service.dart';
 import '../widgets/reportee_summary.dart';
 import 'manager_profile_screen.dart';
 import 'manager_goals_screen.dart';
-import 'manager_assessments_screen.dart';
-import 'manager_feedback_screen.dart';
+
+
 import 'manager_skill_tracker_screen.dart';
 import 'manager_notifications_screen.dart';
 import '../widgets/team_performance_section.dart';
@@ -41,7 +43,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
   Map<String, dynamic>? _managerProfile;
   List<GoalModel> _goals = [];
   List<SelfAssessmentModel> _assessments = [];
-  List<ReviewModel> _feedback = [];
+
   List<SkillModel> _skills = [];
   List<EmployeeModel> _reportees = [];
   Map<String, Map<String, dynamic>> _reporteeStats = {};
@@ -74,7 +76,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
         _fetchReporteesData(managerId),
         _fetchManagerGoals(managerId),
         _fetchManagerAssessments(managerId),
-        _fetchManagerFeedback(managerId),
+
         _fetchManagerSkills(managerId),
       ]);
 
@@ -83,15 +85,11 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
       for (final reportee in _reportees) {
         final reporteeGoals = _goals.where((g) => g.employeeId == reportee.id).toList();
         final reporteeSkills = _skills.where((s) => s.employeeId == reportee.id).toList();
-        final reporteeFeedback = _feedback.where((f) => f.employeeId == reportee.id).toList();
-
         stats[reportee.id] = {
           'activeGoals': reporteeGoals.where((g) => g.status != 'Completed').length,
           'completedGoals': reporteeGoals.where((g) => g.status == 'Completed').length,
           'skillsCount': reporteeSkills.length,
-          'rating': reporteeFeedback.isEmpty
-              ? 4.0
-              : reporteeFeedback.map((f) => f.rating).reduce((a, b) => a + b) / reporteeFeedback.length,
+          'rating': 4.0, // Default rating
         };
       }
 
@@ -191,29 +189,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
     }
   }
 
-  Future<void> _fetchManagerFeedback(String managerId) async {
-    try {
-      // Fetch manager's own feedback
-      final managerFeedback = await ReviewService.getReviewsByEmployeeId(managerId);
-      
-      // Fetch feedback for all reportees
-      final reporteeFeedback = <ReviewModel>[];
-      for (final reportee in _reportees) {
-        if (reportee.id != null) {
-          final feedback = await ReviewService.getReviewsByEmployeeId(reportee.id!);
-          reporteeFeedback.addAll(feedback);
-        }
-      }
-      
-      if (mounted) {
-        setState(() {
-          _feedback = [...managerFeedback, ...reporteeFeedback];
-        });
-      }
-    } catch (e) {
-      print('Error fetching feedback data: $e');
-    }
-  }
+
 
   Future<void> _fetchManagerSkills(String managerId) async {
     try {
@@ -274,7 +250,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                       ManagerProfileScreen(userModel: widget.userModel),
                       ManagerGoalsScreen(userModel: widget.userModel),
                       ManagerSelfAssessmentScreen(userModel: widget.userModel),
-                      ManagerFeedbackScreen(userModel: widget.userModel),
+                      Container(), // Feedback screen removed
                       ManagerSkillTrackerScreen(userModel: widget.userModel),
                       ManagerNotificationsScreen(userModel: widget.userModel),
                     ],
@@ -318,7 +294,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                 _buildNavItem(Icons.person, 'Profile', 1),
                 _buildNavItem(Icons.flag, 'Goals', 2),
                 _buildNavItem(Icons.assessment, 'Assessments', 3),
-                _buildNavItem(Icons.feedback, 'Feedback', 4),
+
                 _buildNavItem(Icons.psychology, 'Skills', 5),
                 _buildNavItem(Icons.notifications, 'Notifications', 6),
               ],
@@ -469,6 +445,8 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
         setState(() {
           _selectedIndex = index;
         });
+        // Reload data when switching tabs
+        _reloadDataForCurrentTab();
       },
       items: const [
         BottomNavigationBarItem(
@@ -642,13 +620,6 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                     _skills.length / 10, // Assuming 10 is a good target for skills
                   ),
                   _buildAnimatedStatCard(
-                    'Feedback',
-                    '${_feedback.length}',
-                    Icons.feedback,
-                    Colors.purple,
-                    _feedback.length / 5, // Assuming 5 is a good target for feedback
-                  ),
-                  _buildAnimatedStatCard(
                     'Assessments',
                     '${_assessments.length}',
                     Icons.assessment,
@@ -782,14 +753,30 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
     );
   }
 
+  void _reloadDataForCurrentTab() async {
+    // Reload dashboard data for all tabs to ensure fresh data
+    // This ensures all performance review data is refreshed
+    await _fetchDashboardData();
+  }
+
   void _logout() async {
     try {
-      // Simplified logout without provider
-      Navigator.of(context).pushReplacementNamed('/login');
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Navigate to login screen
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
     }
   }
 }

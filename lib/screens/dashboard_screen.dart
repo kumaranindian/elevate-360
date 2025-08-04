@@ -4,16 +4,20 @@ import '../models/user_model.dart';
 import '../models/employee_model.dart';
 import '../models/goal_model.dart';
 import '../models/review_model.dart';
+import '../models/performance_review_model.dart';
 import '../services/employee_service.dart';
 import '../services/goal_service.dart';
 import '../services/review_service.dart';
+import '../services/performance_review_service.dart';
 import '../core/utils/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/widgets/app_logo.dart';
+import '../core/widgets/coming_soon_widget.dart';
 import 'employees_screen.dart';
 import 'goals_screen.dart';
 import 'hr_goals_screen.dart';
+import 'hr_assessments_screen.dart';
 import 'master_data_screen.dart';
 import 'login_screen.dart';
 
@@ -37,6 +41,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   List<EmployeeModel> _employees = [];
   List<GoalModel> _goals = [];
   List<ReviewModel> _reviews = [];
+  List<PerformanceReviewModel> _performanceReviews = [];
+  Map<String, int> _reviewCounts = {};
   bool _isLoading = true;
 
   @override
@@ -57,11 +63,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final employees = await EmployeeService.getAllEmployees();
         final goals = await GoalService.getAllGoals();
         final reviews = await ReviewService.getAllReviews();
+        final performanceReviews = await PerformanceReviewService.getReviewsForHR();
+        final reviewCounts = await PerformanceReviewService.getReviewCountsByStatus();
         
         setState(() {
           _employees = employees;
           _goals = goals;
           _reviews = reviews;
+          _performanceReviews = performanceReviews;
+          _reviewCounts = reviewCounts;
           _isLoading = false;
         });
       } else if (widget.userModel.role == 'manager') {
@@ -355,7 +365,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       case 2:
         return const HRGoalsScreen();
       case 3:
-        return _buildReviewsContent();
+        return widget.userModel.isHrAdmin || widget.userModel.isSuperAdmin
+            ? HRAssessmentsScreen(userModel: widget.userModel)
+            : _buildReviewsContent();
       case 4:
         return _buildReportsContent();
       default:
@@ -569,6 +581,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               'View your performance reviews',
               isDesktop,
             ),
+          ],
+          
+          // Performance Review Status for HR
+          if (widget.userModel.isHrAdmin || widget.userModel.isSuperAdmin) ...[
+            SizedBox(height: spacing),
+            const Text(
+              'Performance Review Status',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: isDesktop ? 12 : 20),
+            _buildPerformanceReviewCounts(isDesktop),
           ],
           
           SizedBox(height: spacing),
@@ -864,11 +891,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildReportsContent() {
-    return const Center(
-      child: Text(
-        'Reports & Analytics',
-        style: TextStyle(color: Colors.white, fontSize: 24),
-      ),
+    return const ComingSoonWidget(
+      title: 'Reports & Analytics',
+      subtitle: 'HR Reports Dashboard',
+      icon: Icons.assessment,
+      description: 'Generate comprehensive reports on employee performance, team analytics, goal achievements, and organizational insights with advanced filtering and export capabilities.',
     );
   }
 
@@ -968,5 +995,152 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildPerformanceReviewCounts(bool isDesktop) {
+    return Container(
+      padding: EdgeInsets.all(isDesktop ? 16 : 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF333333), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.assessment,
+                color: AppTheme.primaryColor,
+                size: isDesktop ? 20 : 24,
+              ),
+              SizedBox(width: isDesktop ? 8 : 12),
+              Text(
+                'Review Status Overview',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isDesktop ? 16 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isDesktop ? 16 : 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildReviewCountCard(
+                  'Pending Self Review',
+                  _reviewCounts['pending_self'] ?? 0,
+                  Colors.orange,
+                  Icons.person,
+                  isDesktop,
+                ),
+              ),
+              SizedBox(width: isDesktop ? 12 : 16),
+              Expanded(
+                child: _buildReviewCountCard(
+                  'Pending Manager Review',
+                  _reviewCounts['pending_manager'] ?? 0,
+                  Colors.blue,
+                  Icons.supervisor_account,
+                  isDesktop,
+                ),
+              ),
+              SizedBox(width: isDesktop ? 12 : 16),
+              Expanded(
+                child: _buildReviewCountCard(
+                  'Pending HR Review',
+                  _reviewCounts['pending_hr'] ?? 0,
+                  AppTheme.primaryColor,
+                  Icons.business,
+                  isDesktop,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isDesktop ? 12 : 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildReviewCountCard(
+                  'Completed Reviews',
+                  _reviewCounts['completed'] ?? 0,
+                  Colors.green,
+                  Icons.check_circle,
+                  isDesktop,
+                ),
+              ),
+              SizedBox(width: isDesktop ? 12 : 16),
+              Expanded(
+                child: _buildReviewCountCard(
+                  'Total Reviews',
+                  (_reviewCounts['pending_self'] ?? 0) +
+                  (_reviewCounts['pending_manager'] ?? 0) +
+                  (_reviewCounts['pending_hr'] ?? 0) +
+                  (_reviewCounts['completed'] ?? 0),
+                  const Color(0xFF888888),
+                  Icons.analytics,
+                  isDesktop,
+                ),
+              ),
+              Expanded(child: Container()), // Empty space to balance the row
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCountCard(
+    String title,
+    int count,
+    Color color,
+    IconData icon,
+    bool isDesktop,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(isDesktop ? 12 : 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: isDesktop ? 16 : 20,
+              ),
+              const Spacer(),
+              Text(
+                count.toString(),
+                style: TextStyle(
+                  color: color,
+                  fontSize: isDesktop ? 20 : 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isDesktop ? 8 : 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: const Color(0xFF888888),
+              fontSize: isDesktop ? 12 : 14,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 }

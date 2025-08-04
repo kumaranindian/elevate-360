@@ -51,7 +51,8 @@ class PerformanceReviewModel {
       employeeId: json['employee_id'] as String,
       quarter: json['quarter'] as String,
       year: json['year'] as int,
-      selfReviewData: json['self_review_data'] as Map<String, dynamic>?,
+      selfReviewData: json['self_review_data'] as Map<String, dynamic>? ?? 
+          (json['self_assessment_data'] != null ? {'self_assessment_data': json['self_assessment_data']} : null),
       managerReviewData: json['manager_review_data'] as Map<String, dynamic>?,
       hrReviewData: json['hr_review_data'] as Map<String, dynamic>?,
       status: json['status'] as String,
