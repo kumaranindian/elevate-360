@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/self_assessment_model.dart';
 import '../models/employee_model.dart';
 import '../models/manager_rating_model.dart';
+import 'manager_assessments_screen.dart';
 import '../services/self_assessment_service.dart';
 import '../services/employee_service.dart';
 import '../services/manager_rating_service.dart';
@@ -326,33 +327,8 @@ class _ManagerSelfAssessmentScreenState extends State<ManagerSelfAssessmentScree
   }
 
   Widget _buildTeamAssessmentTab() {
-    final hasCompletedSelfAssessment = _currentAssessment != null && 
-        _currentAssessment!.status == 'Submitted';
-    
-    return Container(
-      color: const Color(0xFF1A1A1A),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(ResponsiveUtils.getPadding(context)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!hasCompletedSelfAssessment) _buildSelfAssessmentWarning(),
-            _buildReporteeSelector(),
-            if (_selectedReportee != null) ...[
-              SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
-              _buildReporteeAssessmentView(),
-              if (hasCompletedSelfAssessment) ...[
-                SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
-                _buildManagerRatingSection(),
-              ] else ...[
-                SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
-                _buildRatingRestrictedMessage(),
-              ],
-            ],
-          ],
-        ),
-      ),
-    );
+    // Import the ManagerAssessmentsScreen widget to show reportee reviews
+    return ManagerAssessmentsScreen(userModel: widget.userModel);
   }
 
   Widget _buildQuarterSelector() {

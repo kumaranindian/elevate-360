@@ -224,7 +224,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   prefixIcon: const Icon(Icons.lock, size: 20, color: Color(0xFF888888)),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
                       size: 20,
                       color: const Color(0xFF888888),
                     ),

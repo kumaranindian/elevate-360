@@ -4,7 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/user_model.dart';
 import '../models/goal_model.dart';
 import '../models/skill_model.dart';
-import '../models/review_model.dart';
+
 import '../models/self_assessment_model.dart';
 import '../core/utils/app_theme.dart';
 
@@ -13,14 +13,14 @@ import '../core/widgets/app_logo.dart';
 import 'employee_profile_screen.dart';
 import 'employee_goals_screen.dart';
 import 'employee_self_assessment_screen.dart';
-import 'employee_feedback_received_screen.dart';
+
 import 'employee_skill_tracker_screen.dart';
 import 'notifications_coming_soon_screen.dart';
 import 'login_screen.dart';
 import '../services/employee_service.dart';
 import '../services/goal_service.dart';
 import '../services/self_assessment_service.dart';
-import '../services/review_service.dart';
+
 import '../services/skill_service.dart';
 import 'dart:math' as math;
 
@@ -43,7 +43,7 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
   Map<String, dynamic>? _profile;
   List<GoalModel> _goals = [];
   List<SelfAssessmentModel> _assessments = [];
-  List<ReviewModel> _feedback = [];
+
   List<SkillModel> _skills = [];
   bool _isLoading = true;
   String? _error;
@@ -65,10 +65,7 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
       debugPrint('Goals fetched successfully. Fetching assessments...');
       
       final assessments = await SelfAssessmentService.getSelfAssessmentsByEmployeeId(employee.id);
-      debugPrint('Assessments fetched successfully. Fetching feedback...');
-      
-      final feedback = await ReviewService.getReviewsByEmployeeId(employee.id);
-      debugPrint('Feedback fetched successfully. Fetching skills...');
+      debugPrint('Assessments fetched successfully. Fetching skills...');
       
       final skills = await SkillService.getSkillsByEmployeeId(employee.id);
       debugPrint('Skills fetched successfully. Updating state...');
@@ -77,7 +74,7 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
         _profile = employee.toJson();
         _goals = goals;
         _assessments = assessments;
-        _feedback = feedback;
+
         _skills = skills;
         _isLoading = false;
       });
@@ -160,8 +157,8 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
                 _buildNavItem(Icons.dashboard, 'Dashboard', 0),
                 _buildNavItem(Icons.person, 'My Profile', 1),
                 _buildNavItem(Icons.flag, 'My Goals', 2),
-                _buildNavItem(Icons.assessment, 'Self Assessment', 3),
-                _buildNavItem(Icons.feedback, 'Feedback Received', 4),
+                _buildNavItem(Icons.assessment, 'Assessment', 3),
+
                 _buildNavItem(Icons.psychology, 'Skill Tracker', 5),
                 _buildNavItem(Icons.notifications, 'Notifications', 6),
               ],
@@ -357,7 +354,7 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
       case 3:
         return EmployeeSelfAssessmentScreen(userModel: widget.userModel);
       case 4:
-        return EmployeeFeedbackReceivedScreen(userModel: widget.userModel);
+        return Container(); // Feedback screen removed
       case 5:
         return EmployeeSkillTrackerScreen(userModel: widget.userModel);
       case 6:
@@ -376,9 +373,9 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
       case 2:
         return 'My Goals';
       case 3:
-        return 'Self Assessment';
+        return 'Assessment';
       case 4:
-        return 'Feedback Received';
+        return 'Removed'; // Feedback removed
       case 5:
         return 'Skill Tracker';
       case 6:
@@ -510,7 +507,7 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
                           ),
                           _buildQuickActionButton(
                             icon: Icons.assessment,
-                            label: 'Self Assessment',
+                            label: 'Assessment',
                             onTap: () => setState(() => _selectedIndex = 3),
                           ),
                           _buildQuickActionButton(
@@ -579,13 +576,6 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
                     Icons.psychology,
                     AppTheme.infoColor,
                     _skills.length / 10, // Assuming 10 is a good target for skills
-                  ),
-                  _buildAnimatedStatCard(
-                    'Feedback',
-                    '${_feedback.length}',
-                    Icons.feedback,
-                    Colors.purple,
-                    _feedback.length / 5, // Assuming 5 is a good target for feedback
                   ),
                   _buildAnimatedStatCard(
                     'Assessments',
@@ -906,15 +896,6 @@ class _EmployeeDashboardScreenState extends ConsumerState<EmployeeDashboardScree
         'time': a.updatedAt,
         'icon': Icons.assessment,
         'color': AppTheme.warningColor,
-      });
-    }
-    for (var f in _feedback) {
-      activities.add({
-        'type': 'Feedback',
-        'desc': 'Feedback received (${f.reviewType})',
-        'time': f.updatedAt,
-        'icon': Icons.feedback,
-        'color': Colors.purple,
       });
     }
     for (var s in _skills) {

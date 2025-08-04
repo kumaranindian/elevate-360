@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/self_assessment_model.dart';
+import '../models/performance_review_model.dart';
 
 class SelfAssessmentService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final CollectionReference _reviewsCollection = _firestore.collection('performance_reviews');
   
   // Get self assessment by employee ID and quarter
   static Future<SelfAssessmentModel?> getSelfAssessmentByEmployeeAndQuarter(
@@ -11,22 +13,38 @@ class SelfAssessmentService {
     int year
   ) async {
     try {
-      final QuerySnapshot snapshot = await _firestore
-          .collection('self_assessments')
-          .where('employee_id', isEqualTo: employeeId)
-          .where('quarter', isEqualTo: quarter)
-          .where('year', isEqualTo: year)
-          .limit(1)
-          .get();
+      // Generate review ID for self-assessment (reviewType = 1)
+      final reviewId = _generateReviewId(
+        employeeId: employeeId,
+        quarter: quarter,
+        year: year,
+        reviewType: 1,
+      );
       
-      if (snapshot.docs.isEmpty) {
+      print('Looking for self-assessment with reviewId: $reviewId');
+      
+      // Get the review document from performance_reviews collection
+      final DocumentSnapshot doc = await _reviewsCollection.doc(reviewId).get();
+      
+      if (!doc.exists) {
+        print('Review document not found for reviewId: $reviewId');
         return null;
       }
       
-      final doc = snapshot.docs.first;
       final data = doc.data() as Map<String, dynamic>;
-      return SelfAssessmentModel.fromJson({...data, 'id': doc.id});
+      print('Review document found, checking for self_assessment_data');
+      
+      // Extract self-assessment data from the review document
+      if (data['self_assessment_data'] != null) {
+        final selfAssessmentData = data['self_assessment_data'] as Map<String, dynamic>;
+        print('Self-assessment data found in review document');
+        return SelfAssessmentModel.fromJson({...selfAssessmentData, 'id': reviewId});
+      } else {
+        print('No self_assessment_data found in review document');
+        return null;
+      }
     } catch (e) {
+      print('Error loading self assessment: $e');
       throw Exception('Failed to load self assessment: $e');
     }
   }
@@ -78,30 +96,65 @@ class SelfAssessmentService {
     }
   }
 
-  // Create new self assessment
+  // Generate review ID using the format: year_quarter_employeeid_reviewtype
+  static String _generateReviewId({
+    required String employeeId,
+    required String quarter,
+    required int year,
+    required int reviewType, // 1=self, 2=manager, 3=HR
+  }) {
+    // Extract quarter number from quarter string (e.g., "Q1 2025" -> "q1")
+    final quarterLower = quarter.toLowerCase().replaceAll(' ', '').replaceAll(year.toString(), '');
+    return '${year}_${quarterLower}_${employeeId}_$reviewType';
+  }
+
+  // Create new self assessment in reviews collection
   static Future<bool> createSelfAssessment(SelfAssessmentModel assessment) async {
     try {
-      final assessmentData = assessment.toJson();
-      assessmentData['created_at'] = FieldValue.serverTimestamp();
-      assessmentData['updated_at'] = FieldValue.serverTimestamp();
+      // Generate review ID for self-assessment (reviewType = 1)
+      final reviewId = _generateReviewId(
+        employeeId: assessment.employeeId,
+        quarter: assessment.quarter,
+        year: assessment.year,
+        reviewType: 1,
+      );
 
-      await _firestore.collection('self_assessments').add(assessmentData);
+      // Convert self-assessment to performance review format
+      final reviewData = {
+        'id': reviewId,
+        'employee_id': assessment.employeeId,
+        'quarter': assessment.quarter,
+        'year': assessment.year,
+        'review_type': 'self_review',
+        'status': PerformanceReviewModel.STATUS_AWAITING_SELF_REVIEW,
+        'self_assessment_data': assessment.toJson(),
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+
+      await _reviewsCollection.doc(reviewId).set(reviewData);
       return true;
     } catch (e) {
       throw Exception('Failed to create self assessment: $e');
     }
   }
 
-  // Update self assessment
+  // Update self assessment in reviews collection
   static Future<bool> updateSelfAssessment(SelfAssessmentModel assessment) async {
     try {
-      final assessmentData = assessment.toJson();
-      assessmentData['updated_at'] = FieldValue.serverTimestamp();
+      // Generate review ID for self-assessment (reviewType = 1)
+      final reviewId = _generateReviewId(
+        employeeId: assessment.employeeId,
+        quarter: assessment.quarter,
+        year: assessment.year,
+        reviewType: 1,
+      );
 
-      await _firestore
-          .collection('self_assessments')
-          .doc(assessment.id)
-          .update(assessmentData);
+      // Update the self-assessment data in the review document
+      await _reviewsCollection.doc(reviewId).update({
+        'self_assessment_data': assessment.toJson(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
 
       return true;
     } catch (e) {
@@ -109,14 +162,19 @@ class SelfAssessmentService {
     }
   }
 
-  // Submit self assessment (update status to 'awaiting manager review')
-  static Future<bool> submitSelfAssessment(String assessmentId) async {
+  // Submit self assessment (update status to 'self review completed')
+  static Future<bool> submitSelfAssessment(String employeeId, String quarter, int year) async {
     try {
-      await _firestore
-          .collection('self_assessments')
-          .doc(assessmentId)
-          .update({
-        'status': 'awaiting manager review',
+      // Generate review ID for self-assessment (reviewType = 1)
+      final reviewId = _generateReviewId(
+        employeeId: employeeId,
+        quarter: quarter,
+        year: year,
+        reviewType: 1,
+      );
+
+      await _reviewsCollection.doc(reviewId).update({
+        'status': PerformanceReviewModel.STATUS_SELF_REVIEW_COMPLETED,
         'submitted_date': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       });
