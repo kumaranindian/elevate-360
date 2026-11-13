@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Elevate-360</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00D4FF"/>
+      <stop offset="0.6" stop-color="#0099CC"/>
+      <stop offset="1" stop-color="#0066CC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <!-- 360 ring: open arc, gap top-right where growth breaks out -->
+  <path d="M810.9 538.1 A300 300 0 1 1 564.1 216.6" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="56" stroke-linecap="round"/>
+  <!-- growth line -->
+  <polyline points="322,640 448,514 548,604 736,360" fill="none" stroke="#fff" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="822,252 787,406 676,319" fill="#fff" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
+</svg>
