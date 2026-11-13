@@ -1,4 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+/// Brand mark: growth arrow breaking out of a 360° ring.
+/// Source artwork lives in assets/images/app_logo.svg.
+const String _logoAsset = 'assets/images/app_logo.svg';
+
+class _LogoMark extends StatelessWidget {
+  final double size;
+  final double glowBlur;
+  final double glowOffset;
+  final double glowSpread;
+
+  const _LogoMark({
+    required this.size,
+    required this.glowBlur,
+    required this.glowOffset,
+    required this.glowSpread,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        // Matches the artwork's corner radius (224 / 1024).
+        borderRadius: BorderRadius.circular(size * 0.22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00D4FF).withOpacity(0.4),
+            blurRadius: glowBlur,
+            offset: Offset(0, glowOffset),
+            spreadRadius: glowSpread,
+          ),
+        ],
+      ),
+      child: SvgPicture.asset(
+        _logoAsset,
+        width: size,
+        height: size,
+        semanticsLabel: 'Elevate 360 logo',
+      ),
+    );
+  }
+}
 
 class AppLogo extends StatelessWidget {
   final double size;
@@ -17,38 +62,7 @@ class AppLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Logo icon
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF00D4FF),
-                const Color(0xFF0099CC),
-                const Color(0xFF0066CC),
-              ],
-              stops: const [0.0, 0.6, 1.0],
-            ),
-            borderRadius: BorderRadius.circular(size * 0.2),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF00D4FF).withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.trending_up,
-            color: Colors.white,
-            size: size * 0.6,
-          ),
-        ),
-        
+        _LogoMark(size: size, glowBlur: 12, glowOffset: 4, glowSpread: 2),
         if (showText) ...[
           SizedBox(width: size * 0.3),
           Text(
@@ -78,35 +92,6 @@ class AppLogoSmall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF00D4FF),
-            const Color(0xFF0099CC),
-            const Color(0xFF0066CC),
-          ],
-          stops: const [0.0, 0.6, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(size * 0.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00D4FF).withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Icon(
-        Icons.trending_up,
-        color: Colors.white,
-        size: size * 0.6,
-      ),
-    );
+    return _LogoMark(size: size, glowBlur: 8, glowOffset: 3, glowSpread: 1);
   }
-} 
+}

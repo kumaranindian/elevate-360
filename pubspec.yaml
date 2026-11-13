@@ -67,16 +67,31 @@ dev_dependencies:
   # Linting
   flutter_lints: ^6.0.0
 
+# Icons are generated from the SVG sources in assets/images/ (app_logo, app_icon_*).
+# Regenerate with: dart run flutter_launcher_icons
 flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
   image_path: "assets/images/app_logo.png"
+  android: true
+  adaptive_icon_background: "assets/images/app_icon_background.png"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  ios: true
+  image_path_ios: "assets/images/app_icon_square.png"
   remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/app_logo.png"
+    background_color: "#0099CC"
+    theme_color: "#0099CC"
+  windows:
+    generate: true
+    image_path: "assets/images/app_logo.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/images/app_logo.png"
 
 flutter:
   uses-material-design: true
   
   assets:
     - assets/images/
-    - assets/icons/
-    - assets/animations/
